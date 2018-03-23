@@ -13,10 +13,15 @@ movie_1 = "test3.mp4"
 movie_2 = "test10.mp4"
 movie_3 = "test11.divx"
 
+current_volume = 50
+volume_increment = 2
+new_volume = current_volume
+
 
 button_1 = 23
 button_2 = 24
 button_3 = 25
+
 led_green = 16
 led_red = 12
 led_blue = 20
@@ -24,6 +29,9 @@ led_blue = 20
 btn_led_green = 17
 btn_led_red = 27
 btn_led_blue = 22
+
+btn_volume_up = 5
+btn_volume_down = 6
 
 GPIO.setmode(GPIO.BCM)
 #initialize gpio pin #s
@@ -33,6 +41,8 @@ GPIO.setwarnings(False)
 GPIO.setup(button_1, GPIO.IN, pull_up_down=GPIO.PUD_UP) ## Tells it that pinNumBTN will be giving input
 GPIO.setup(button_2, GPIO.IN, pull_up_down=GPIO.PUD_UP) ## Tells it that pinNumBTN will be giving input
 GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP) ## Tells it that pinNumBTN will be giving input
+GPIO.setup(btn_volume_up, GPIO.IN, pull_up_down=GPIO.PUD_UP) ## Tells it that pinNumBTN will be giving input
+GPIO.setup(btn_volume_down, GPIO.IN, pull_up_down=GPIO.PUD_UP) ## Tells it that pinNumBTN will be giving input
 #GPIO.setup(button_1, GPIO.IN)
 #GPIO.setup(button_2, GPIO.IN)
 #GPIO.setup(button_3, GPIO.IN)
@@ -56,6 +66,9 @@ dc = 95 # duty cycle (0-100)
 GPIO.add_event_detect(button_1, GPIO.RISING)
 GPIO.add_event_detect(button_2, GPIO.RISING)
 GPIO.add_event_detect(button_3, GPIO.RISING)
+
+GPIO.add_event_detect(btn_volume_up, GPIO.RISING)
+GPIO.add_event_detect(btn_volume_down, GPIO.RISING)
 
 #initialize
 #pwm_green.start(dc)
@@ -107,6 +120,7 @@ else:
 
 	# Create new instance of vlc player
 	player = vlcInstance.media_player_new()
+	player.audio_set_volume(current_volume);
 	#player = vlc.MediaPlayer(movie)
 
 	# Add a callback
@@ -129,9 +143,9 @@ else:
 	pygame.mixer.quit()
 
 	#create reference to movie.
-	media = vlcInstance.media_new(movie)
+	#media = vlcInstance.media_new(movie)
 	# Load movie into vlc player instance
-	player.set_media(media)
+	#player.set_media(media)
 	# Start movie playback
 	#player.play() # dont start at this point
 
@@ -142,8 +156,6 @@ else:
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
 				sys.exit(2)
-			if event.type == pygame.MOUSEBUTTONDOWN:
-				print "we got a mouse button down!"
 			if (event.type is pygame.KEYDOWN and event.key == pygame.K_F11):
 			    if screen.get_flags() & pygame.FULLSCREEN:
 				pygame.display.set_mode(size_screen, flag_normalscreen)
@@ -187,6 +199,25 @@ else:
 			GPIO.output(btn_led_blue, GPIO.HIGH)
 			time.sleep(1)
 			GPIO.output(btn_led_blue,GPIO.LOW)
+
+		if GPIO.event_detected(btn_volume_up) and playing == True:
+			if((current_volume + volume_increment) > 100):
+				current_volume = 100
+				new_volume = current_volume
+			else:
+				new_volume = current_volume + volume_increment
+				current_volume = new_volume
+			print "we got a volume up! %s" % new_volume
+			player.audio_set_volume(new_volume)
+	
+		if GPIO.event_detected(btn_volume_down) and playing == True:
+			if((current_volume - volume_increment) < 0):
+				current_volume = 0
+				new_volume = current_volume
+			else:
+				new_volume = current_volume - volume_increment
+				current_volume = new_volume
+			player.audio_set_volume(new_volume)
 		
 		if movie_playing == 1 and playing == True :
 			#pwm_blue.ChangeDutyCycle(100-dc)
