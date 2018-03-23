@@ -7,6 +7,11 @@ import time
 # GPIO
 import RPi.GPIO as GPIO
 
+#
+movie = "test3.mp4"
+movie_1 = "test3.mp4"
+movie_2 = "test10.mp4"
+movie_3 = "test11.divx"
 
 
 button_1 = 23
@@ -15,6 +20,10 @@ button_3 = 25
 led_green = 16
 led_red = 12
 led_blue = 20
+
+btn_led_green = 17
+btn_led_red = 27
+btn_led_blue = 22
 
 GPIO.setmode(GPIO.BCM)
 #initialize gpio pin #s
@@ -31,6 +40,10 @@ GPIO.setup(button_3, GPIO.IN, pull_up_down=GPIO.PUD_UP) ## Tells it that pinNumB
 GPIO.setup(led_green, GPIO.OUT)
 GPIO.setup(led_red, GPIO.OUT)
 GPIO.setup(led_blue, GPIO.OUT)
+
+GPIO.setup(btn_led_green, GPIO.OUT)
+GPIO.setup(btn_led_red, GPIO.OUT)
+GPIO.setup(btn_led_blue, GPIO.OUT)
 
 #pwm setup
 #pwm_green = GPIO.PWM(led_green, 50)
@@ -49,15 +62,13 @@ GPIO.add_event_detect(button_3, GPIO.RISING)
 #pwm_red.start(dc)
 #pwm_blue.start(dc)
 
-
-movie_1 = "test3.mp4"
-movie_2 = "test10.mp4"
-movie_3 = "test11.divx"
-
 flag_fullscreen = pygame.FULLSCREEN|pygame.OPENGL|pygame.HWSURFACE|pygame.DOUBLEBUF
 flag_normalscreen = pygame.RESIZABLE|pygame.OPENGL|pygame.HWSURFACE|pygame.DOUBLEBUF
 
+#must be the same as monitor and video resolution
+#size_screen = (1024,600) #screen size of 7 inch monitor dispaly for raspberrypi
 size_screen = (800,600)
+
 
 
 def callback(self, player):
@@ -67,8 +78,8 @@ def callback(self, player):
 	print 'time =', player.get_time(), '(ms)'
 	print 'FRAME =', .001 * player.get_time() * player.get_fps()
 
-if len( sys.argv )< 2 or len( sys.argv )> 3:
-	print 'Usage: vlctest <file_name>'
+if len( sys.argv )< 3 or len( sys.argv )> 5:
+	print 'Usage: vlctest <file_name> <file_name> <file_name>'
 else:
 	# Enable in Windows to use directx renderer instead of windib
 	#os.environ["SDL_VIDEODRIVER"] = "directx"
@@ -81,7 +92,9 @@ else:
 	print 'Playing: %s' % sys.argv[1]
 
 	# Get path to movie specified as command line argument
-	movie = os.path.expanduser(sys.argv[1])
+	movie_1 = os.path.expanduser(sys.argv[1])
+	movie_2 = os.path.expanduser(sys.argv[2])
+	movie_3 = os.path.expanduser(sys.argv[3])
 
 	# Check if movie is accessible
 	if not os.access(movie, os.R_OK):
@@ -117,15 +130,10 @@ else:
 
 	#create reference to movie.
 	media = vlcInstance.media_new(movie)
-	
-	
-	
-
-
 	# Load movie into vlc player instance
 	player.set_media(media)
 	# Start movie playback
-	#player.play()
+	#player.play() # dont start at this point
 
 	playing = False
 	movie_playing = 0
@@ -151,6 +159,10 @@ else:
 			playing = True
 			movie_playing = 1
 
+			GPIO.output(btn_led_red,GPIO.HIGH)
+			time.sleep(1)
+			GPIO.output(btn_led_red,GPIO.LOW)
+
 		if GPIO.event_detected(button_2):
 			if  not movie_playing == 2:
 				player.stop()
@@ -160,6 +172,9 @@ else:
 
 			playing = True
 			movie_playing = 2
+			GPIO.output(btn_led_green,GPIO.HIGH)
+			time.sleep(1)
+			GPIO.output(btn_led_green,GPIO.LOW)
 
 		if GPIO.event_detected(button_3):
 			if  not movie_playing == 3:
@@ -169,6 +184,9 @@ else:
 				player.play()
 			playing = True
 			movie_playing = 3
+			GPIO.output(btn_led_blue, GPIO.HIGH)
+			time.sleep(1)
+			GPIO.output(btn_led_blue,GPIO.LOW)
 		
 		if movie_playing == 1 and playing == True :
 			#pwm_blue.ChangeDutyCycle(100-dc)
